@@ -1,0 +1,5 @@
+asgiref==3.8.1
+Django==5.0.6
+GDAL @ file:///C:/Users/Heni/Downloads/GDAL-3.7.3-cp311-cp311-win_amd64.whl#sha256=01ff659fd6fd59219c2dddb979d7bb38bccc0fa90da1292ef1081c90dd017811
+sqlparse==0.5.0
+tzdata==2024.1

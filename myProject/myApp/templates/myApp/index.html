@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>map</title>
+
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+
+      <!-- Make sure you put this AFTER Leaflet's CSS -->
+ <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+ integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+ crossorigin=""></script>
+
+    <!-- Importation des fichiers CSS et JS de Leaflet to Draw/search -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+</head>
+<body>
+    <div id="map", style="height: 500px;"></div>
+
+    <!--on peut faire un formulaire django-->   
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <input  type="text" id ="coords_polys" class="form-control" name="coords_polys" hidden>    
+        <input type="text" id ="name_zone" class="form-control" placeholder="Nom de zone" name="name_zone" aria-label="Coordonnées Des Zones" aria-describedby="basic-addon1">    
+        <button class="btn btn-primary m-2 mx-2" type="submit">enregistrez !</button>
+        
+</body>
+<script>
+var map = L.map('map').setView([37.191869, 10.179576], 11);
+L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 23,
+    attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+}).addTo(map);
+
+
+    //Search bar
+    var geocoder = L.Control.geocoder({
+        defaultMarkGeocode: false,
+        placeholder: "Rechercher des localisations",
+        errorMessage: "Non Trouvé"
+    }).on('markgeocode', function (e) {
+        var bbox = e.geocode.bbox;
+        var poly = L.polygon([
+            bbox.getSouthEast(),
+            bbox.getNorthEast(),
+            bbox.getNorthWest(),
+            bbox.getSouthWest()
+        ]);
+        map.fitBounds(poly.getBounds(), {
+            maxZoom: 16
+        });
+    }).addTo(map);
+
+// Create a feature group to store drawn items and add it to the map.
+var drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+
+    // Initialize the drawing control and add it to the map.
+    var drawControl = new L.Control.Draw({
+        draw: {
+            polygon: { // Allow drawing polygons with specific shape options.
+                shapeOptions: {
+                    color: "blue", // Set the polygon color to green.
+                },
+            },
+            marker: true,
+            polyline: true, // Disable drawing polylines.
+            rectangle: true, // Disable drawing rectangles.
+            circle: true, // Disable drawing circles.
+            circlemarker: true, // Disable adding circle markers.
+        },
+        edit: {
+            featureGroup: drawnItems, // Enable editing for the drawn items.
+            remove: true, // Allow removing drawn items.
+        },
+    });
+    // Add the drawing control to the map.
+    map.addControl(drawControl);
+
+
+    map.on("draw:created", function (e) {
+        var type = e.layerType, layer = e.layer;
+        if (type === "polygon") {
+            // Verify if there is already a polygon
+            if(drawnItems.getLayers().length === 0) { // Check if the drawnItems group is empty
+                drawnItems.addLayer(layer);
+                updatePolygonCoordinates(drawnItems); // Update polygon coordinates
+            } else {
+                alert("Vous ne pouvez pas creer plus qu'un polygone ");
+            }
+        }
+    });
+
+
+    // Function to fill the coordinates of the drawn polygon in a variable
+    function updatePolygonCoordinates(layer) {
+        var myjson = layer.toGeoJSON(); // Convert the layer to GeoJSON format
+        let coords = myjson.features[0].geometry.coordinates; // Extract coordinates
+        const multiPolygon = {
+            type: "MultiPolygon",
+            coordinates: [coords],
+        };
+        // Update a hidden input field with the polygon coordinates in JSON format
+        document.getElementById("coords_polys").value = JSON.stringify(multiPolygon);
+        
+    }
+</script>
+</html>
